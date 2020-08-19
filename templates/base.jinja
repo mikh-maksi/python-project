@@ -1,0 +1,17 @@
+<!doctype html>
+<title>{% block title %}{% endblock %}Розробники України</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<nav>
+  <h1><a href="{{ url_for('ab') }}">Розробники України</a></h1>
+  <ul>
+      <li><a href="{{ url_for('ab_load') }}">Завантажити з файлу</a>
+      <li><a href="{{ url_for('ab_dump') }}">Скачати</a>
+      <li><a href="{{ url_for('ab_clear') }}">Видалити всі записи</a>
+  </ul>
+</nav>
+<section class="content">
+  <header>
+    {% block header %}{% endblock %}
+  </header>
+  {% block content %}{% endblock %}
+</section>
