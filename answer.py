@@ -30,18 +30,20 @@ def index_error_decorator(function):
             result = function(*args)
             return result
         except ValueError:
-            raise IncorrectInput(f"Передане значення індексу не є цілим числом")
+            raise IncorrectInput(f"Переданное значение индекса не является целым числом")
 
     return inner
 
 
-def get_rate_stat(records):
+def get_rate_stat(developers):
     rates = []
-    stat = {"mean": None, "min": None, "max": None, "item_number": 0}
-    for record in records:
-        rate = record.get_rate()
+    stat = {"mean": None, "min": None, "max": None, "item_number": 0, "total":0}
+    
+    for developer in developers:
+        rate = developer.get_rate()
         if rate:
             rates.append(rate)
+    
     if rates:
         stat.update(
             {
@@ -49,6 +51,7 @@ def get_rate_stat(records):
                 "min": min(rates),
                 "max": max(rates),
                 "item_number": len(rates),
+                "total": sum(rates)
             }
         )
     return stat
@@ -152,12 +155,9 @@ class RateField(DataField):
 
 REGISTERED_FIELDS = {
     FirstNameField.field_description: FirstNameField,
-    LastNameField.field_description: LastNameField,
-    OrganizationField.field_description: OrganizationField,
     CityField.field_description: CityField,
     SkillField.field_description: SkillField,
     PhoneField.field_description: PhoneField,
-    EmailField.field_description: EmailField,
     RateField.field_description: RateField,
 }
 
@@ -173,7 +173,7 @@ def field_decoder(field_dict):
     return field
 
 
-class Record:
+class Developer:
     def __init__(self):
         self.fields = []
         self.phone = ""
@@ -192,8 +192,8 @@ class Record:
     def to_json(self):
         return {"fields": [field.to_json() for field in self.fields]}
 
-    def from_json(self, dict_record):
-        field_list = dict_record["fields"]
+    def from_json(self, dict_developer):
+        field_list = dict_developer["fields"]
         if field_list:
             for field_dict in field_list:
                 field = field_decoder(field_dict)
@@ -282,78 +282,78 @@ class Record:
 
 class AddressBook:
     def __init__(self):
-        self.records = {}
-        self.last_record_id = 0
+        self.developers = {}
+        self.last_developer_id = 0
 
     def __getitem__(self, key):
-        return self.records[key]
+        return self.developers[key]
 
     def dumps(self):
-        records = {rec_id: rec.to_json() for rec_id, rec in self.records.items()}
-        return json.dumps(records)
+        developers = {rec_id: rec.to_json() for rec_id, rec in self.developers.items()}
+        return json.dumps(developers)
 
-    def loads(self, bytes_records):
-        self.records.clear()
-        self.last_record_id = 0
-        json_records = json.loads(bytes_records)
-        for _, record_list in json_records.items():
-            record = Record()
-            record.from_json(record_list)
-            self.add(record)
-            # self.records[int(record_id)] = record
-        # self.last_record_id = max(self.records.keys()) + 1
+    def loads(self, bytes_developers): #Достать из файла и сделать объектом
+        self.developers.clear()
+        self.last_developer_id = 0
+        json_developers = json.loads(bytes_developers)
+        for _, developer_list in json_developers.items():
+            developer = Developer()
+            developer.from_json(developer_list)
+            self.add(developer)
+            # self.developers[int(developer_id)] = developer
+        # self.last_developer_id = max(self.developers.keys()) + 1
 
-    def add(self, record):
-        self.records[self.last_record_id] = record
-        record_id = self.last_record_id
-        self.last_record_id += 1
-        return record_id
+    def add(self, developer):  # Добавить элемент
+        self.developers[self.last_developer_id] = developer
+        developer_id = self.last_developer_id
+        self.last_developer_id += 1
+        return developer_id
 
-    def replace(self, record_id, record):
-        if record_id not in self.records:
-            raise KeyError(f"Record {record_id} not found")
-        self.records[record_id] = record
+    def replace(self, developer_id, developer):   #Заменить
+        if developer_id not in self.developers:
+            raise KeyError(f"developer {developer_id} not found")
+        self.developers[developer_id] = developer
 
     @index_error_decorator
-    def delete(self, record_id):
-        key = int(record_id)
-        self.records.pop(key)
+    def delete(self, developer_id):   #Удалить
+        key = int(developer_id)
+        self.developers.pop(key)
 
-    def str_search(self, search_str: str):
+    def str_search(self, search_str: str):   #поиск строки
         result = {}
-        for record_id, record in self.records.items():
-            if search_str in record:
-                result[record_id] = record
+        for developer_id, developer in self.developers.items():
+            if search_str in developer:
+                result[developer_id] = developer
         return result
 
-    def multiple_search(self, **search_items):
+    def multiple_search(self, **search_items): # множественный поиск (убрать, т.к. указатели)
         result = {}
-        for record_id, record in self.records.items():
-            if record.multiple_search(**search_items):
-                result[record_id] = record
+        for developer_id, developer in self.developers.items():
+            if developer.multiple_search(**search_items):
+                result[developer_id] = developer
         return result
 
-    def clear(self):
-        self.records.clear()
-        self.last_record_id = 0
+    def clear(self):    #очистить
+        self.developers.clear()
+        self.last_developer_id = 0
 
 
 app = Flask("answer")
 AB = AddressBook()
 # CORS(app)
 with open("ab.json") as file:
-    # records = json.load(file)
+    # developers = json.load(file)
     AB.loads(file.read())
 
 
 @app.errorhandler(KeyError)
-def handle_record_not_found(_):
-    return render_template("error.jinja", message="Запис не знайдено")
+def handle_developer_not_found(_):
+    return render_template("error.jinja", message="Запись не найдена")
 
 
 @app.errorhandler(IndexError)
 def handle_field_not_found(_):
-    return render_template("error.jinja", message="Поле не знайдено")
+    return render_template("error.jinja", message="Поле не найдено")
 
 
 @app.errorhandler(IncorrectInput)
@@ -369,7 +369,7 @@ def handle_invalid_format(error):
 @app.route("/")
 def ab():
     return render_template(
-        "records.jinja", records=AB.records, stat_url=url_for("search_stat")
+        "developers.jinja", developers=AB.developers, stat_url=url_for("search_stat")
     )
 
 
@@ -417,7 +417,7 @@ def search():
         print(search_query)
         stat_url = url_for("search_stat", **search_query)
         search_result = AB.multiple_search(**search_query)
-    return render_template("records.jinja", records=search_result, stat_url=stat_url)
+    return render_template("developers.jinja", developers=search_result, stat_url=stat_url)
 
 
 @app.route("/search/stat")
@@ -431,59 +431,59 @@ def search_stat():
         print(search_query, search_result)
         search_statistics = get_rate_stat(search_result.values())
     else:
-        search_statistics = get_rate_stat(AB.records.values())
+        search_statistics = get_rate_stat(AB.developers.values())
     return render_template(
         "statistics.jinja", statistics=search_statistics, search=search_query
     )
 
 
-@app.route("/ab/record", methods=("GET", "POST"))
-def new_record():
-    record = Record()
-    record_id = AB.add(record)
-    return redirect(url_for(endpoint="record", record_id=record_id))
+@app.route("/ab/developer", methods=("GET", "POST"))
+def new_developer():
+    developer = Developer()
+    developer_id = AB.add(developer)
+    return redirect(url_for(endpoint="developer", developer_id=developer_id))
 
 
-@app.route("/ab/record/<int:record_id>/delete")
-def delete_record(record_id):
-    AB.delete(record_id)
-    return redirect(url_for(endpoint="ab", record_id=record_id))
+@app.route("/ab/developer/<int:developer_id>/delete")
+def delete_developer(developer_id):
+    AB.delete(developer_id)
+    return redirect(url_for(endpoint="ab", developer_id=developer_id))
 
 
-@app.route("/ab/record/<int:record_id>", methods=("GET", "POST"))
-def record(record_id):
-    current_record = AB[record_id]
+@app.route("/ab/developer/<int:developer_id>", methods=("GET", "POST"))
+def developer(developer_id):
+    current_developer = AB[developer_id]
     if request.method == "POST":
         if "idx" in request.form:
             idxs = [int(idx) for idx in request.form.to_dict(flat=False)["idx"]]
             types = [f_type for f_type in request.form.to_dict(flat=False)["type"]]
             values = [value for value in request.form.to_dict(flat=False)["value"]]
             for idx, f_type, value in zip(idxs, types, values):
-                current_record.update(idx, value)
+                current_developer.update(idx, value)
         else:
             field_class = REGISTERED_FIELDS[request.form["type"]]
             field = field_class(request.form["value"])
-            current_record.add(field)
+            current_developer.add(field)
 
     return render_template(
-        "record.jinja",
-        record=current_record,
-        record_id=record_id,
+        "developer.jinja",
+        developer=current_developer,
+        developer_id=developer_id,
         fields=REGISTERED_FIELDS.keys(),
     )
 
 
-@app.route("/ab/record/<int:record_id>/field/<int:field_index>/delete")
-def delete_field(record_id, field_index):
-    current_record = AB[record_id]
-    current_record.delete(field_index)
-    return redirect(url_for("record", record_id=record_id))
+@app.route("/ab/developer/<int:developer_id>/field/<int:field_index>/delete")
+def delete_field(developer_id, field_index):
+    current_developer = AB[developer_id]
+    current_developer.delete(field_index)
+    return redirect(url_for("developer", developer_id=developer_id))
 
 
 def main():
     from werkzeug.serving import run_simple
 
-    run_simple("0.0.0.0", 8080, app)
+    run_simple("0.0.0.0", 5050, app)
     # BEGIN SOLUTION
     # app.run(host="0.0.0.0", port=8080)
     # END SOLUTION
