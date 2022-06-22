@@ -8,37 +8,37 @@
 <article class="post">
     <table>
       <tr>
-        <th>Разработчиков:</th>
+        <th>Розробників:</th>
         <th>{{ statistics["item_number"] }}</th>
       </tr>
       <tr>
-        <th>Наибольшее значение:</th>
+        <th>Найбільше значення:</th>
         <th>{{ statistics["max"] }}</th>
       </tr>
       <tr>
-        <th>Наименьшее значение:</th>
+        <th>Найменше значення:</th>
         <th>{{ statistics["min"] }}</th>
       </tr>
       <tr>
-        <th>Среднее значение:</th>
+        <th>Середнє значення:</th>
         <th>{{ statistics["mean"] }}</th>
       </tr>
       <tr>
-        <th>Общая сумма:</th>
+        <th>Загальна сума:</th>
         <th>{{ statistics["total"] }}</th>
       </tr>
     </table>
 </article>
 <article class="post">
     {% if search %}
-        <div><h2>Поисковой запрос</h2></div>
+        <div><h2>Пошуковий запит</h2></div>
     {% if 'all' in search %}
-        Поиск по запросу: "{{ search['all'] }}"
+        Пошук за запитом: "{{ search['all'] }}"
     {% else %}
         <table>
           <tr>
             <th>Поле</th>
-            <th>Значение</th>
+            <th>Значення</th>
           </tr>
             {% for field, value in search.items() %}
               <tr>
